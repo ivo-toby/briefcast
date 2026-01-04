@@ -1,0 +1,28 @@
+From: newsletter@example.com
+To: briefcast@your-domain.com
+Subject: Weekly AI Newsletter - January 2026
+Date: Sat, 04 Jan 2026 10:00:00 +0000
+Message-ID: <sample123@example.com>
+Content-Type: text/html; charset=utf-8
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Weekly AI Newsletter</title>
+</head>
+<body>
+    <h1>This Week in AI</h1>
+
+    <h2>OpenAI Releases New Model</h2>
+    <p>OpenAI announced a new language model with improved reasoning capabilities...</p>
+    <a href="https://example.com/openai-news">Read more</a>
+
+    <h2>Google's AI Breakthrough</h2>
+    <p>Google researchers published a paper on quantum machine learning...</p>
+    <a href="https://example.com/google-ai">Full article</a>
+
+    <h2>Startup Funding Round</h2>
+    <p>AI startup XYZ raised $50M in Series B funding...</p>
+    <a href="https://example.com/funding">Details</a>
+</body>
+</html>

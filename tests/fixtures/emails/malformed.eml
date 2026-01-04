@@ -1,0 +1,6 @@
+From: malformed@example.com
+Subject: Malformed Email
+Invalid-Header-Without-Value
+Content-Type: text/plain
+
+This email is missing proper headers and has invalid formatting.
