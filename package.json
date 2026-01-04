@@ -1,0 +1,45 @@
+{
+  "name": "briefcast",
+  "version": "1.0.0",
+  "description": "Email-to-podcast conversion service powered by Cloudflare Workers",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src",
+    "format": "prettier --write src",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "email",
+    "podcast",
+    "rss",
+    "cloudflare-workers",
+    "serverless"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "postal-mime": "^2.6.1",
+    "podcast": "^2.0.1",
+    "js-yaml": "^4.1.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250101.0",
+    "@cloudflare/vitest-pool-workers": "^0.9.0",
+    "@types/js-yaml": "^4.0.9",
+    "typescript": "^5.3.0",
+    "wrangler": "^3.100.0",
+    "vitest": "^2.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
