@@ -144,7 +144,11 @@ const skipPatterns = [
 - **FR-003.1:** Store configuration as `config.yaml` in R2 bucket
 - **FR-003.2:** Schema validation using Zod
 - **FR-003.3:** Hot-reload on each cron run (no redeployment needed)
-- **FR-003.4:** Fallback to defaults if config missing or invalid
+- **FR-003.4:** Fail fast on Worker startup if config is invalid
+  - Invalid YAML syntax → Worker fails to start
+  - Missing required fields → Worker fails to start
+  - Invalid field values → Worker fails to start
+  - Missing config.yaml → Use hardcoded defaults (allow first-time setup)
 
 **Configuration Schema:**
 ```yaml
@@ -880,26 +884,53 @@ R2_PUBLIC_URL = "https://podcast.yourdomain.com"
 
 ## 7. Testing Strategy
 
-### 7.1 Unit Tests
+### 7.1 Test Coverage Requirements
+- **Overall coverage target**: 80%+ across all code
+- **Critical path coverage**: 100% on:
+  - Daily cron job (scheduled-worker.ts)
+  - Email ingestion (email-worker.ts)
+  - Script generation (script-generator.ts)
+  - TTS generation (tts-generator.ts)
+  - Configuration validation (config-loader.ts)
+  - API authentication and endpoints (api-worker.ts)
+- **Testing framework**: Workers-compatible framework (Vitest, Miniflare, or similar)
+- **Coverage tool**: c8, nyc, or built-in framework coverage
+- **CI enforcement**: Tests must pass with coverage requirements before merge
+
+### 7.2 Unit Tests
 - Content extraction with various HTML formats
 - Configuration validation with valid/invalid YAML
 - Shownotes parsing from Claude output
 - Retry logic for API failures
+- Prompt generation with different configurations
+- Error handling for all external API failures
 
-### 7.2 Integration Tests
+### 7.3 Integration Tests
 - End-to-end flow: email → KV → script → TTS → RSS
 - Manual API workflow: generate → approve → publish
 - Config hot-reload behavior
 - Error handling paths
+- Authentication and authorization flows
+- RSS feed generation and validation
 
-### 7.3 Manual Testing
+### 7.4 Edge Case Tests
+- Malformed newsletter HTML
+- Empty newsletter content
+- Claude API rate limiting
+- Fish Audio API failures
+- R2 storage errors
+- Invalid authentication tokens
+- Missing configuration fields
+
+### 7.5 Manual Testing
 - Subscribe to real newsletters, verify processing
 - Test in multiple podcast apps (Overcast, Pocket Casts, Apple Podcasts)
 - Verify shownotes formatting and links
 - Test manual approval workflow
 - Stress test with 20+ newsletters in one day
+- Verify CDN setup (if enabled)
 
-### 7.4 Monitoring
+### 7.6 Monitoring
 - Cloudflare Workers analytics (requests, errors, CPU time)
 - KV operation counts
 - R2 storage usage
@@ -1237,7 +1268,7 @@ R2_PUBLIC_URL = "https://podcast.yourdomain.com"
 ### 9.2 Configuration
 - ✅ User can configure content filtering via YAML
 - ✅ Configuration is hot-reloadable
-- ✅ Invalid config falls back to defaults
+- ✅ Invalid config fails fast on Worker startup (no silent failures)
 
 ### 9.3 Manual Controls
 - ✅ User can manually trigger episode generation
@@ -1264,6 +1295,8 @@ R2_PUBLIC_URL = "https://podcast.yourdomain.com"
 
 ### 9.7 Quality
 - ✅ TypeScript strict mode passes
+- ✅ Test coverage: 80%+ overall, 100% on critical paths
+- ✅ All tests pass (unit, integration, edge cases)
 - ✅ No hardcoded secrets or URLs
 - ✅ Comprehensive error handling
 - ✅ Clean, well-organized code structure

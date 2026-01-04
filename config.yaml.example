@@ -1,0 +1,104 @@
+# Briefcast Configuration
+# Upload this file to R2 bucket as 'config.yaml'
+
+# Schedule configuration
+schedule:
+  cron: "0 5 * * *"  # 05:00 UTC (06:00 CET) daily
+
+# Content filtering
+filtering:
+  include_topics:
+    - machine learning
+    - artificial intelligence
+    - large language models
+  exclude_topics:
+    - cryptocurrency
+    - blockchain
+  exclude_keywords:
+    - sponsored
+    - advertisement
+    - ad:
+    - promotion
+
+# Script generation (Claude API)
+script_generation:
+  model: "claude-sonnet-4-5-20250929"
+  max_tokens: 16000
+  temperature: 1.0
+  min_words: 800
+  max_words: 1500
+  target_duration_minutes: 10
+  system_prompt: |
+    You are an engaging podcast host creating a daily tech briefing from newsletter content.
+    Your tone is professional yet conversational, focusing on clear explanations of complex topics.
+    Structure each episode with an introduction, main content organized by theme, and a concise conclusion.
+    Avoid marketing speak and focus on substantial technical insights.
+  user_prompt_template: |
+    Create a {target_duration_minutes}-minute podcast episode from today's newsletters.
+
+    Newsletters:
+    {newsletters}
+
+    Requirements:
+    - Natural, conversational tone
+    - Clear structure with intro and conclusion
+    - {min_words}-{max_words} words
+    - Focus on technical insights, skip promotional content
+    - Group related topics together
+
+# Text-to-speech (Fish Audio)
+tts:
+  voice_id: "953f72be2fbf451693e98e4d094a9e4e"
+  bitrate: 64  # 64, 128, or 192 kbps
+  format: "mp3"
+  speed: 1.0
+
+# RSS feed metadata
+podcast:
+  title: "Daily Tech Briefing"
+  description: "AI-generated daily podcast from curated tech newsletters"
+  author: "Briefcast"
+  email: "podcast@your-domain.com"
+  category: "Technology"
+  subcategory: "Tech News"
+  language: "en"
+  copyright: "© 2024 Your Name"
+  image_url: "https://your-r2-domain.com/cover.jpg"
+  site_url: "https://your-domain.com"
+
+# Storage settings
+storage:
+  max_episodes: 30  # Keep last 30 episodes, delete older ones
+  email_ttl_days: 7  # Keep emails in KV for 7 days
+  pending_script_ttl_days: 30  # Keep pending scripts for 30 days
+
+# CDN configuration (optional escape hatch)
+cdn:
+  enabled: false
+  provider: "cloudflare"  # cloudflare, bunny, cloudfront
+  # Cloudflare CDN configuration
+  cloudflare:
+    zone_id: ""
+    cache_everything: true
+    browser_cache_ttl: 86400  # 24 hours
+  # BunnyCDN configuration
+  bunny:
+    pull_zone_id: ""
+    storage_zone_name: ""
+  # CloudFront configuration
+  cloudfront:
+    distribution_id: ""
+    origin_domain: ""
+
+# Monitoring and notifications (optional)
+monitoring:
+  webhook_url: ""  # Optional webhook for episode completion/errors
+  email_notifications: false
+  notification_email: ""
+
+# Performance tuning
+performance:
+  claude_timeout_seconds: 120
+  fish_timeout_seconds: 300
+  max_retries: 3
+  retry_backoff_seconds: 5
