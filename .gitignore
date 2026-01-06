@@ -50,3 +50,9 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.wrangler
+node_modules
+.env
+.envrc
+config.yaml
+wrangler.toml
