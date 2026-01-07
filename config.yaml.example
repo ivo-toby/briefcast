@@ -11,13 +11,18 @@ filtering:
     - machine learning
     - artificial intelligence
     - large language models
+    - claude code
+    - agents
+    - agentic coding
+    - anthropic
+    - openAI
   exclude_topics:
     - cryptocurrency
     - blockchain
   exclude_keywords:
     - sponsored
     - advertisement
-    - ad:
+    - ad
     - promotion
 
 # Script generation (Claude API)
@@ -45,60 +50,56 @@ script_generation:
     - {min_words}-{max_words} words
     - Focus on technical insights, skip promotional content
     - Group related topics together
+    - Don't use headings, ensure natural conversational flow
 
-# Text-to-speech (Fish Audio)
+# Text-to-speech (OpenAI)
 tts:
-  voice_id: "953f72be2fbf451693e98e4d094a9e4e"
-  bitrate: 64  # 64, 128, or 192 kbps
-  format: "mp3"
-  speed: 1.0
+  model: "tts-1"  # tts-1 or tts-1-hd (higher quality)
+  voice: "alloy"  # alloy, echo, fable, onyx, nova, shimmer
+  format: "mp3"   # mp3, opus, aac, flac
+  speed: 1.15      # 0.25 to 4.0
+  bitrate: 128    # Not used by OpenAI but kept for compatibility
 
 # RSS feed metadata
 podcast:
-  title: "Daily Tech Briefing"
+  title: "Daily AI News Briefing"
   description: "AI-generated daily podcast from curated tech newsletters"
-  author: "Briefcast"
-  email: "podcast@your-domain.com"
+  author: "Ivo Toby"
+  email: "ivo@toby.nu"
   category: "Technology"
   subcategory: "Tech News"
   language: "en"
-  copyright: "© 2024 Your Name"
-  image_url: "https://your-r2-domain.com/cover.jpg"
-  site_url: "https://your-domain.com"
-
+  copyright: "© 2026 Ivo Toby"
+  image_url: "https://SUBDOMAIN.r2.dev/cover.jpg"
+  site_url: "https://SUBDOMAIN.r2.dev"
 # Storage settings
 storage:
-  max_episodes: 30  # Keep last 30 episodes, delete older ones
+  max_episodes: 21  # Keep last 30 episodes, delete older ones
   email_ttl_days: 7  # Keep emails in KV for 7 days
-  pending_script_ttl_days: 30  # Keep pending scripts for 30 days
+  pending_script_ttl_days: 21  # Keep pending scripts for 30 days
+
+# Email routing and filtering
+email:
+  forward_to: "forward@email.com"  # All emails forwarded here for subscription confirmations
+  allowed_senders:  # Only these senders' emails are stored in KV for podcast generation
+    # Add newsletter sender addresses or domains (wildcards supported)
+    # Examples:
+    # - "newsletter@example.com"  # Exact email
+    - "*@substack.com"          # All emails from substack.com
+    - "*@beehiiv.com"           # All emails from beehiiv.com
 
 # CDN configuration (optional escape hatch)
 cdn:
   enabled: false
-  provider: "cloudflare"  # cloudflare, bunny, cloudfront
-  # Cloudflare CDN configuration
-  cloudflare:
-    zone_id: ""
-    cache_everything: true
-    browser_cache_ttl: 86400  # 24 hours
-  # BunnyCDN configuration
-  bunny:
-    pull_zone_id: ""
-    storage_zone_name: ""
-  # CloudFront configuration
-  cloudfront:
-    distribution_id: ""
-    origin_domain: ""
+  provider: "cloudflare"
 
 # Monitoring and notifications (optional)
 monitoring:
-  webhook_url: ""  # Optional webhook for episode completion/errors
   email_notifications: false
-  notification_email: ""
 
 # Performance tuning
 performance:
   claude_timeout_seconds: 120
-  fish_timeout_seconds: 300
+  tts_timeout_seconds: 300
   max_retries: 3
   retry_backoff_seconds: 5

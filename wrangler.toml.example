@@ -1,6 +1,6 @@
 name = "briefcast"
 main = "src/index.ts"
-compatibility_date = "2024-01-01"
+compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
 # Scheduled Worker - daily aggregation and podcast generation
@@ -10,12 +10,12 @@ crons = ["0 5 * * *"]
 # KV Namespace - temporary email storage
 [[kv_namespaces]]
 binding = "EMAIL_STORE"
-id = "some-id"
+id = "<EMAILSTORE ID>"
 
 # R2 Bucket - audio files, RSS feed, config.yaml
 [[r2_buckets]]
 binding = "PODCAST_BUCKET"
-bucket_name = "PODCAST_BUCKET"
+bucket_name = "-podcast"
 
 # Environment variables (use `wrangler secret put` for sensitive values)
 [vars]
