@@ -1,15 +1,17 @@
 import type { Env } from './lib/types';
 import { loadConfig } from './lib/config-loader';
-import { getEmails, deleteEmail, storePendingScript, storeAudio, cleanupOldEpisodes } from './lib/storage';
+import { getEmails, deleteEmail, storeAudio, storeEpisodeMetadata, getAllEpisodes, updateRSSFeed, cleanupOldEpisodes } from './lib/storage';
 import { extractContent } from './lib/content-extractor';
 import { generateScript } from './lib/script-generator';
+import { generateAudio } from './lib/tts-generator';
+import { generateRSSFeed } from './lib/rss-generator';
 import { createLogger } from './lib/logger';
 
 const logger = createLogger('scheduled-worker');
 
 export async function handleScheduled(env: Env): Promise<void> {
   try {
-    logger.info('Starting daily aggregation');
+    logger.info('Starting daily podcast generation');
 
     const config = await loadConfig(env);
     const emails = await getEmails(env);
@@ -22,6 +24,7 @@ export async function handleScheduled(env: Env): Promise<void> {
     const { parseEmail } = await import('./lib/content-extractor');
     const newsletters = [];
 
+    // Process all emails
     for (const [id, raw] of emails) {
       const email = await parseEmail(raw);
       const content = extractContent(email, config);
@@ -29,14 +32,42 @@ export async function handleScheduled(env: Env): Promise<void> {
       await deleteEmail(id, env);
     }
 
-    const script = await generateScript(newsletters, config, env);
-    await storePendingScript(script, env);
+    logger.info('Generating podcast script', { newsletterCount: newsletters.length });
 
+    // Generate script
+    const script = await generateScript(newsletters, config, env);
+
+    logger.info('Generating audio', { scriptId: script.id, wordCount: script.wordCount });
+
+    // Generate audio (automatically, no approval needed)
+    const { audioFile, buffer } = await generateAudio(script, config, env);
+    const audioUrl = await storeAudio(audioFile, buffer, config, env);
+
+    // Update audio file with actual URL
+    audioFile.url = audioUrl;
+
+    logger.info('Audio generated successfully', { audioUrl, durationSeconds: audioFile.durationSeconds });
+
+    // Store episode metadata
+    await storeEpisodeMetadata(audioFile, script, env);
+
+    // Regenerate RSS feed with all episodes
+    const allEpisodes = await getAllEpisodes(env);
+    const feedXml = generateRSSFeed(allEpisodes, config);
+    await updateRSSFeed(feedXml, env);
+
+    logger.info('RSS feed updated', { totalEpisodes: allEpisodes.length });
+
+    // Clean up old episodes
     await cleanupOldEpisodes(config.storage.max_episodes, env);
 
-    logger.info('Daily aggregation completed', { scriptId: script.id });
+    logger.info('Daily podcast generation completed', {
+      scriptId: script.id,
+      audioUrl,
+      episodeCount: allEpisodes.length
+    });
   } catch (error) {
-    logger.error('Daily aggregation failed', { error });
+    logger.error('Daily podcast generation failed', { error });
     throw error;
   }
 }
