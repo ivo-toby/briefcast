@@ -1,8 +1,9 @@
 import type { Env, ManualTriggerResponse, PendingScriptsResponse, ApproveScriptResponse } from './lib/types';
 import { requireAuth } from './lib/auth';
 import { handleScheduled } from './scheduled-worker';
-import { getPendingScripts, deletePendingScript, storeAudio } from './lib/storage';
+import { getPendingScripts, deletePendingScript, storeAudio, storeEpisodeMetadata, getAllEpisodes, updateRSSFeed } from './lib/storage';
 import { generateAudio } from './lib/tts-generator';
+import { generateRSSFeed } from './lib/rss-generator';
 import { loadConfig } from './lib/config-loader';
 import { createLogger } from './lib/logger';
 
@@ -62,10 +63,25 @@ async function handleApprove(request: Request, env: Env): Promise<Response> {
     return new Response(JSON.stringify({ error: 'Script not found' }), { status: 404 });
   }
 
-  const audioFile = await generateAudio(script, config, env);
-  const audioBuffer = new ArrayBuffer(0);
-  const audioUrl = await storeAudio(audioFile, audioBuffer, env);
+  // Generate and store audio
+  const { audioFile, buffer } = await generateAudio(script, config, env);
+  const audioUrl = await storeAudio(audioFile, buffer, config, env);
+
+  // Update audio file with the actual URL
+  audioFile.url = audioUrl;
+
+  // Store episode metadata for RSS feed
+  await storeEpisodeMetadata(audioFile, script, env);
+
+  // Regenerate RSS feed with all episodes
+  const allEpisodes = await getAllEpisodes(env);
+  const feedXml = generateRSSFeed(allEpisodes, config);
+  await updateRSSFeed(feedXml, env);
+
+  // Clean up
   await deletePendingScript(scriptId, env);
+
+  logger.info('Script approved and RSS feed updated', { scriptId, episodeCount: allEpisodes.length });
 
   const response: ApproveScriptResponse = { success: true, message: 'Script approved', audioUrl };
   return new Response(JSON.stringify(response), { headers: { 'Content-Type': 'application/json' } });
