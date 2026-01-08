@@ -23,13 +23,14 @@ export async function handleScheduled(env: Env): Promise<void> {
 
     const { parseEmail } = await import('./lib/content-extractor');
     const newsletters = [];
+    const emailIds: string[] = [];
 
-    // Process all emails
+    // Process all emails (but don't delete yet)
     for (const [id, raw] of emails) {
       const email = await parseEmail(raw);
       const content = extractContent(email, config);
       newsletters.push(content);
-      await deleteEmail(id, env);
+      emailIds.push(id);
     }
 
     logger.info('Generating podcast script', { newsletterCount: newsletters.length });
@@ -60,6 +61,13 @@ export async function handleScheduled(env: Env): Promise<void> {
 
     // Clean up old episodes
     await cleanupOldEpisodes(config.storage.max_episodes, env);
+
+    // Only delete emails after EVERYTHING succeeded
+    for (const id of emailIds) {
+      await deleteEmail(id, env);
+    }
+
+    logger.info('Emails deleted from KV', { count: emailIds.length });
 
     logger.info('Daily podcast generation completed', {
       scriptId: script.id,
