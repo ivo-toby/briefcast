@@ -41,10 +41,12 @@ script_generation:
 
 ```yaml
 tts:
-  voice_id: "your-fish-audio-voice-id"
-  bitrate: 64  # 64, 128, or 192
-  format: "mp3"
-  speed: 1.0
+  model: "gpt-4o-mini-tts"  # GPT-4o mini TTS with prompt steering
+  voice: "alloy"  # alloy, coral, ash, sage, nova, shimmer
+  format: "mp3"   # mp3, opus, aac, flac, pcm, wav
+  speed: 1.0      # 0.25 to 4.0
+  bitrate: 128    # For metadata only
+  style_prompt: "You are a professional podcast host. Speak clearly and engagingly."
 ```
 
 ### Podcast Metadata

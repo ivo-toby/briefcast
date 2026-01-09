@@ -231,7 +231,7 @@ Track audio generation performance:
 export async function generateAudio(...) {
   const startTime = Date.now();
 
-  const audioFile = await retry(() => callFishAudioAPI(...));
+  const audioFile = await retry(() => callOpenAITTS(...));
 
   logger.info('Audio generated', {
     duration: Date.now() - startTime,
@@ -288,7 +288,7 @@ wrangler tail --format json | jq 'select(.level == "error")'
 ```
 
 **Common Causes**:
-- Anthropic/Fish Audio API failures
+- Anthropic/OpenAI API failures
 - Invalid config.yaml
 - R2 permission issues
 

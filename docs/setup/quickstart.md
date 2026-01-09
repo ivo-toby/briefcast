@@ -5,7 +5,7 @@
 - Cloudflare account
 - Domain name (optional but recommended)
 - Anthropic API key
-- Fish Audio API key
+- OpenAI API key
 
 ## Step 1: Clone and Install
 
@@ -28,7 +28,7 @@ Edit `wrangler.toml` with your Cloudflare details.
 
 ```bash
 wrangler secret put ANTHROPIC_API_KEY
-wrangler secret put FISH_AUDIO_API_KEY
+wrangler secret put OPENAI_API_KEY
 wrangler secret put API_AUTH_TOKEN
 ```
 

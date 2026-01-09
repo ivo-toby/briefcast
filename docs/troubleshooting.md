@@ -13,7 +13,7 @@
 - Check if emails were stored in KV
 - Review Worker logs for errors
 - Verify cron trigger is configured
-- Check Claude/Fish API keys are valid
+- Check Claude/OpenAI API keys are valid
 
 ### Script Generation Fails
 
@@ -23,9 +23,9 @@
 
 ### TTS Generation Fails
 
-- Verify Fish Audio API key
-- Check API quota/billing
-- Confirm voice_id is correct
+- Verify OpenAI API key
+- Check API quota/billing and ensure billing is enabled
+- Confirm voice and model settings are correct (see config.yaml)
 
 ### Config Not Loading
 

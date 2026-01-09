@@ -5,6 +5,7 @@ Transform your newsletter subscriptions into a personalized daily podcast using 
 ## Overview
 
 Briefcast automatically:
+
 1. Receives newsletters via email forwarding
 2. Aggregates content daily on a schedule
 3. Generates podcast scripts using Claude AI
@@ -37,16 +38,18 @@ Briefcast now uses OpenAI's `gpt-4o-mini-tts` model with steerable voice deliver
 - **Less Robotic**: More natural-sounding delivery with AI-powered expressiveness
 
 Configure in `config.yaml`:
+
 ```yaml
 tts:
-  model: "gpt-4o-mini-tts"
-  voice: "nova"  # alloy, echo, fable, onyx, nova, shimmer
-  style_prompt: "You are a professional podcast host. Speak clearly and engagingly..."
+  model: 'gpt-4o-mini-tts'
+  voice: 'nova' # alloy, echo, fable, onyx, nova, shimmer
+  style_prompt: 'You are a professional podcast host. Speak clearly and engagingly...'
 ```
 
 ### Script-Only Generation Workflow
 
 New `/generate-script` endpoint allows you to:
+
 - Generate and review scripts before committing to audio generation
 - Keep emails in storage for potential regeneration
 - Approve scripts via `/approve/{script-id}` to generate audio
@@ -54,6 +57,7 @@ New `/generate-script` endpoint allows you to:
 ### Script Archiving
 
 Scripts are now automatically saved to R2 as text files:
+
 - Stored in `scripts/` folder with date-based naming
 - Enables regeneration without re-running Claude
 - Configurable via `storage.save_scripts` in config.yaml
@@ -61,6 +65,7 @@ Scripts are now automatically saved to R2 as text files:
 ### Date-Aware Script Generation
 
 Claude now knows the current date when generating scripts:
+
 - Use `{date}` variable in `user_prompt_template`
 - Prevents temporal confusion ("it's not 2025" when it's 2026)
 - Automatically formatted as "Monday, January 9, 2026"
@@ -68,6 +73,7 @@ Claude now knows the current date when generating scripts:
 ### TTS Testing Endpoint
 
 Test audio generation without affecting production:
+
 - `/test-tts` endpoint for isolated testing
 - Saves test audio to R2 with `test-` prefix
 - Accepts custom `style_prompt` for experimentation
@@ -228,21 +234,21 @@ Edit `config.yaml` to customize:
 
 ```yaml
 schedule:
-  cron: "0 5 * * *"  # Daily at 5 AM UTC
+  cron: '0 5 * * *' # Daily at 5 AM UTC
 
 filtering:
-  include_topics: ["AI", "technology", "startups"]
-  exclude_topics: ["politics", "sports"]
-  exclude_keywords: ["unsubscribe", "spam"]
+  include_topics: ['AI', 'technology', 'startups']
+  exclude_topics: ['politics', 'sports']
+  exclude_keywords: ['unsubscribe', 'spam']
 
 script_generation:
-  model: "claude-3-5-sonnet-20241022"
+  model: 'claude-3-5-sonnet-20241022'
   max_tokens: 4000
   temperature: 0.7
   min_words: 800
   max_words: 2000
   target_duration_minutes: 10
-  system_prompt: "You are a professional podcast host..."
+  system_prompt: 'You are a professional podcast host...'
   # Available variables: {newsletters}, {target_duration_minutes}, {min_words}, {max_words}, {date}
   user_prompt_template: |
     Create a {target_duration_minutes}-minute podcast episode from today's newsletters.
@@ -253,30 +259,30 @@ script_generation:
     {newsletters}
 
 tts:
-  model: "gpt-4o-mini-tts"      # OpenAI's steerable TTS model
-  voice: "nova"                  # Options: alloy, echo, fable, onyx, nova, shimmer
-  format: "mp3"
-  speed: 1.00                    # Range: 0.25 to 4.0
-  bitrate: 128                   # kbps
-  style_prompt: "You are a professional podcast host. Speak clearly and engagingly, with natural pacing and warm, conversational tone."
+  model: 'gpt-4o-mini-tts' # OpenAI's steerable TTS model
+  voice: 'nova' # Options: alloy, echo, fable, onyx, nova, shimmer
+  format: 'mp3'
+  speed: 1.00 # Range: 0.25 to 4.0
+  bitrate: 128 # kbps
+  style_prompt: 'You are a professional podcast host. Speak clearly and engagingly, with natural pacing and warm, conversational tone.'
 
 podcast:
-  title: "My Daily AI Digest"
-  description: "AI news curated and narrated by AI"
-  author: "Your Name"
-  email: "your@email.com"
-  category: "Technology"
-  subcategory: "Tech News"
-  language: "en-us"
-  copyright: "© 2026 Your Name"
-  image_url: "https://pub-xxxxx.r2.dev/cover.jpg"
-  site_url: "https://pub-xxxxx.r2.dev"
+  title: 'My Daily AI Digest'
+  description: 'AI news curated and narrated by AI'
+  author: 'Your Name'
+  email: 'your@email.com'
+  category: 'Technology'
+  subcategory: 'Tech News'
+  language: 'en-us'
+  copyright: '© 2026 Your Name'
+  image_url: 'https://pub-xxxxx.r2.dev/cover.jpg'
+  site_url: 'https://pub-xxxxx.r2.dev'
 
 storage:
   max_episodes: 21
   email_ttl_days: 7
   pending_script_ttl_days: 21
-  save_scripts: true             # Save scripts as text files in R2 (scripts/ folder)
+  save_scripts: true # Save scripts as text files in R2 (scripts/ folder)
 
 performance:
   claude_timeout_seconds: 120
@@ -434,16 +440,19 @@ Estimated monthly costs (daily podcast):
 ## Troubleshooting
 
 **Email not received**
+
 - Check Email Routing is enabled in Cloudflare
 - Verify MX records are configured
 - Check spam folder
 
 **Script generation fails**
+
 - Verify Anthropic API key is valid
 - Check account has credits
 - Review worker logs: `wrangler tail`
 
 **Audio generation fails**
+
 - Verify OpenAI API key is valid
 - Check account has credits and billing is set up
 - Review worker logs: `wrangler tail`
@@ -451,6 +460,7 @@ Estimated monthly costs (daily podcast):
 - Check `style_prompt` isn't too long (max ~1950 tokens)
 
 **RSS feed not updating**
+
 - Check R2 bucket permissions
 - Verify base_url in config.yaml
 - Confirm episodes are being stored
@@ -482,7 +492,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 - [GitHub Issues](https://github.com/yourusername/briefcast/issues)
 - [Documentation](docs/)
-- Email: your@email.com
 
 ---
 

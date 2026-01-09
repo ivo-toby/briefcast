@@ -23,24 +23,24 @@ wrangler secret put ANTHROPIC_API_KEY
 
 **Pricing**: Pay-as-you-go, ~$0.003 per 1K tokens
 
-### 2. Fish Audio API Key
+### 2. OpenAI API Key
 
-**Purpose**: Convert podcast scripts to audio using text-to-speech.
+**Purpose**: Convert podcast scripts to audio using GPT-4o TTS with prompt steering.
 
 **Setup**:
-1. Visit [Fish Audio](https://fish.audio/)
-2. Create account
-3. Go to API section
-4. Generate new API key
-5. Copy the key
+1. Visit [OpenAI Platform](https://platform.openai.com/)
+2. Sign up or log in
+3. Go to API Keys section
+4. Click "Create new secret key"
+5. Copy the key (starts with `sk-proj-` or `sk-`)
 
 **Add to Wrangler**:
 ```bash
-wrangler secret put FISH_AUDIO_API_KEY
+wrangler secret put OPENAI_API_KEY
 # Paste your key when prompted
 ```
 
-**Pricing**: Check current Fish Audio pricing
+**Pricing**: ~$0.015 per minute of audio (GPT-4o-mini TTS pricing)
 
 ### 3. API Auth Token
 
@@ -79,16 +79,18 @@ curl https://api.anthropic.com/v1/messages \
   }'
 ```
 
-### Test Fish Audio Key
+### Test OpenAI Key
 
 ```bash
-curl https://api.fish.audio/v1/tts \
-  -H "Authorization: Bearer $FISH_AUDIO_API_KEY" \
+curl https://api.openai.com/v1/audio/speech \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "text": "Hello world",
-    "voice_id": "default"
-  }'
+    "model": "gpt-4o-mini-tts",
+    "input": "Hello world",
+    "voice": "alloy"
+  }' \
+  --output test.mp3
 ```
 
 ### Test API Auth Token
@@ -108,17 +110,17 @@ curl -H "Authorization: Bearer $API_AUTH_TOKEN" \
    ```bash
    # Update secrets
    wrangler secret put ANTHROPIC_API_KEY
-   wrangler secret put FISH_AUDIO_API_KEY
+   wrangler secret put OPENAI_API_KEY
    ```
 
 3. **Use separate keys for dev/prod**
-   - Create different Anthropic/Fish Audio keys
+   - Create different Anthropic/OpenAI keys
    - Use different auth tokens
 
 4. **Monitor usage**
    - Check Anthropic Console for usage
-   - Check Fish Audio dashboard for costs
-   - Set up budget alerts
+   - Check OpenAI Platform for API usage and costs
+   - Set up budget alerts in both platforms
 
 ## Troubleshooting
 
@@ -127,10 +129,10 @@ curl -H "Authorization: Bearer $API_AUTH_TOKEN" \
 - Check key is active in console
 - Ensure correct permissions
 
-**Fish Audio authentication failed**
-- Verify API key format
-- Check account is active
-- Confirm sufficient credits
+**OpenAI authentication failed**
+- Verify API key starts with `sk-`
+- Check account is active and has billing enabled
+- Confirm sufficient credits/balance
 
 **API auth token rejected**
 - Verify token matches secret

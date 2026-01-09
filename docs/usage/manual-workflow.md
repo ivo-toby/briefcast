@@ -91,7 +91,7 @@ curl -X POST "$WORKER_URL/approve/$SCRIPT_ID" \
 ```
 
 **What happens**:
-- Generates audio using Fish Audio TTS
+- Generates audio using OpenAI GPT-4o TTS
 - Stores audio file in R2
 - Updates RSS feed with new episode
 - Deletes pending script
@@ -274,6 +274,6 @@ workflow:
 - Check worker logs for errors
 
 **Audio generation fails**
-- Verify Fish Audio API key
-- Check account has sufficient credits
-- Review Fish Audio API logs
+- Verify OpenAI API key
+- Check account has billing enabled and sufficient balance
+- Review OpenAI API logs and rate limits

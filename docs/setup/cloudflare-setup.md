@@ -95,8 +95,8 @@ wrangler r2 object put briefcast-podcast/config.yaml --file=config.yaml
 # Anthropic API key
 wrangler secret put ANTHROPIC_API_KEY
 
-# Fish Audio API key
-wrangler secret put FISH_AUDIO_API_KEY
+# OpenAI API key
+wrangler secret put OPENAI_API_KEY
 
 # API auth token
 wrangler secret put API_AUTH_TOKEN
