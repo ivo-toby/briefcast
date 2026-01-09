@@ -1,6 +1,6 @@
 import type { Env } from './lib/types';
 import { loadConfig } from './lib/config-loader';
-import { getEmails, deleteEmail, storeAudio, storeEpisodeMetadata, getAllEpisodes, updateRSSFeed, cleanupOldEpisodes } from './lib/storage';
+import { getEmails, deleteEmail, storeAudio, storeScript, storeEpisodeMetadata, getAllEpisodes, updateRSSFeed, cleanupOldEpisodes } from './lib/storage';
 import { extractContent } from './lib/content-extractor';
 import { generateScript } from './lib/script-generator';
 import { generateAudio } from './lib/tts-generator';
@@ -48,6 +48,12 @@ export async function handleScheduled(env: Env): Promise<void> {
     audioFile.url = audioUrl;
 
     logger.info('Audio generated successfully', { audioUrl, durationSeconds: audioFile.durationSeconds });
+
+    // Store script text file if enabled
+    if (config.storage.save_scripts) {
+      const scriptUrl = await storeScript(script, config, env);
+      logger.info('Script saved', { scriptUrl });
+    }
 
     // Store episode metadata
     await storeEpisodeMetadata(audioFile, script, env);

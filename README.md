@@ -8,20 +8,70 @@ Briefcast automatically:
 1. Receives newsletters via email forwarding
 2. Aggregates content daily on a schedule
 3. Generates podcast scripts using Claude AI
-4. Converts scripts to audio using Fish Audio TTS
+4. Converts scripts to audio using OpenAI TTS (gpt-4o-mini-tts)
 5. Publishes episodes to your private podcast RSS feed
 
-**Built with**: Cloudflare Workers, R2, KV, Email Workers, Anthropic Claude, Fish Audio
+**Built with**: Cloudflare Workers, R2, KV, Email Workers, Anthropic Claude, OpenAI TTS
 
 ## Features
 
 - 📧 **Email Ingestion**: Forward newsletters to dedicated email address
-- 🤖 **AI Script Generation**: Claude transforms content into engaging podcast scripts
-- 🎙️ **Text-to-Speech**: High-quality audio using Fish Audio
+- 🤖 **AI Script Generation**: Claude transforms content into engaging podcast scripts with date awareness
+- 🎙️ **Text-to-Speech**: High-quality steerable audio using OpenAI gpt-4o-mini-tts
 - 📻 **Private RSS Feed**: Subscribe in any podcast app
 - 🔒 **Manual Review**: Optional approval workflow before publishing
-- ⚙️ **Fully Configurable**: YAML-based configuration for all settings
-- 💰 **Cost Effective**: ~$5-10/month on Cloudflare's platform
+- 📝 **Script Archiving**: Automatic script saving to R2 for regeneration
+- 🧪 **TTS Testing**: Test audio generation without affecting production
+- ⚙️ **Fully Configurable**: YAML-based configuration for all settings including voice style
+- 💰 **Cost Effective**: ~$6-11/month on Cloudflare's platform
+
+## Recent Updates
+
+### OpenAI gpt-4o-mini-tts with Prompt Steering
+
+Briefcast now uses OpenAI's `gpt-4o-mini-tts` model with steerable voice delivery:
+
+- **Better Quality**: 48 kHz studio-grade audio vs standard quality
+- **Cost Savings**: 67% cheaper than tts-1-hd (~$3.60/month vs $10.80/month)
+- **Steerable Voice**: Control tone, emotion, pacing, and accent via `style_prompt`
+- **Less Robotic**: More natural-sounding delivery with AI-powered expressiveness
+
+Configure in `config.yaml`:
+```yaml
+tts:
+  model: "gpt-4o-mini-tts"
+  voice: "nova"  # alloy, echo, fable, onyx, nova, shimmer
+  style_prompt: "You are a professional podcast host. Speak clearly and engagingly..."
+```
+
+### Script-Only Generation Workflow
+
+New `/generate-script` endpoint allows you to:
+- Generate and review scripts before committing to audio generation
+- Keep emails in storage for potential regeneration
+- Approve scripts via `/approve/{script-id}` to generate audio
+
+### Script Archiving
+
+Scripts are now automatically saved to R2 as text files:
+- Stored in `scripts/` folder with date-based naming
+- Enables regeneration without re-running Claude
+- Configurable via `storage.save_scripts` in config.yaml
+
+### Date-Aware Script Generation
+
+Claude now knows the current date when generating scripts:
+- Use `{date}` variable in `user_prompt_template`
+- Prevents temporal confusion ("it's not 2025" when it's 2026)
+- Automatically formatted as "Monday, January 9, 2026"
+
+### TTS Testing Endpoint
+
+Test audio generation without affecting production:
+- `/test-tts` endpoint for isolated testing
+- Saves test audio to R2 with `test-` prefix
+- Accepts custom `style_prompt` for experimentation
+- See `TEST-TTS.md` for usage guide
 
 ## Quick Start
 
@@ -31,7 +81,7 @@ Briefcast automatically:
 - [Cloudflare account](https://dash.cloudflare.com/sign-up) (Workers Paid plan for R2)
 - Domain name (optional, can use workers.dev subdomain)
 - [Anthropic API key](https://console.anthropic.com/)
-- [Fish Audio API key](https://fish.audio/)
+- [OpenAI API key](https://platform.openai.com/api-keys)
 
 ### Installation
 
@@ -71,7 +121,7 @@ wrangler r2 bucket create briefcast-podcast
 
 # Or manually:
 wrangler secret put ANTHROPIC_API_KEY
-wrangler secret put FISH_AUDIO_API_KEY
+wrangler secret put OPENAI_API_KEY
 wrangler secret put API_AUTH_TOKEN  # Generate with: openssl rand -hex 32
 ```
 
@@ -118,10 +168,11 @@ See [docs/setup/domain-setup.md](docs/setup/domain-setup.md) for detailed instru
 
 1. **Subscribe**: Forward newsletters to `newsletters@yourdomain.com`
 2. **Daily Processing**: Cron job runs daily at 5 AM UTC
-3. **Script Generation**: Claude creates podcast script
+3. **Script Generation**: Claude creates podcast script with current date awareness
 4. **Review** (if enabled): Approve/reject via API
-5. **Audio Generation**: Fish Audio converts to MP3
-6. **RSS Update**: Episode added to feed automatically
+5. **Audio Generation**: OpenAI TTS converts to high-quality MP3 with steerable voice
+6. **Script Archiving**: Script saved to R2 as text file (if enabled)
+7. **RSS Update**: Episode added to feed automatically
 
 ### Manual Control
 
@@ -143,17 +194,30 @@ See [docs/setup/domain-setup.md](docs/setup/domain-setup.md) for detailed instru
 curl https://your-worker.workers.dev/pending \
   -H "Authorization: Bearer your-token"
 
-# Manually trigger aggregation
+# Manually trigger aggregation (full workflow)
 curl -X POST https://your-worker.workers.dev/trigger \
   -H "Authorization: Bearer your-token"
 
-# Approve script
+# Generate script only (without audio generation or email deletion)
+curl -X POST https://your-worker.workers.dev/generate-script \
+  -H "Authorization: Bearer your-token"
+
+# Approve script (generates audio and updates RSS feed)
 curl -X POST https://your-worker.workers.dev/approve/script-id \
   -H "Authorization: Bearer your-token"
 
 # Reject script
 curl -X POST https://your-worker.workers.dev/reject/script-id \
   -H "Authorization: Bearer your-token"
+
+# Test TTS generation (saves to R2 with test- prefix)
+curl -X POST https://your-worker.workers.dev/test-tts \
+  -H "Authorization: Bearer your-token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "This is a test of the text-to-speech system.",
+    "style_prompt": "Speak clearly and professionally."
+  }'
 ```
 
 See [docs/usage/manual-workflow.md](docs/usage/manual-workflow.md) for details.
@@ -168,17 +232,33 @@ schedule:
 
 filtering:
   include_topics: ["AI", "technology", "startups"]
+  exclude_topics: ["politics", "sports"]
   exclude_keywords: ["unsubscribe", "spam"]
 
 script_generation:
   model: "claude-3-5-sonnet-20241022"
   max_tokens: 4000
   temperature: 0.7
-  system_prompt: "You are a podcast host..."
+  min_words: 800
+  max_words: 2000
+  target_duration_minutes: 10
+  system_prompt: "You are a professional podcast host..."
+  # Available variables: {newsletters}, {target_duration_minutes}, {min_words}, {max_words}, {date}
+  user_prompt_template: |
+    Create a {target_duration_minutes}-minute podcast episode from today's newsletters.
+
+    Today's date: {date}
+
+    Newsletters:
+    {newsletters}
 
 tts:
-  voice_id: "default"
-  bitrate: 128  # kbps
+  model: "gpt-4o-mini-tts"      # OpenAI's steerable TTS model
+  voice: "nova"                  # Options: alloy, echo, fable, onyx, nova, shimmer
+  format: "mp3"
+  speed: 1.00                    # Range: 0.25 to 4.0
+  bitrate: 128                   # kbps
+  style_prompt: "You are a professional podcast host. Speak clearly and engagingly, with natural pacing and warm, conversational tone."
 
 podcast:
   title: "My Daily AI Digest"
@@ -186,14 +266,23 @@ podcast:
   author: "Your Name"
   email: "your@email.com"
   category: "Technology"
-  base_url: "https://pub-xxxxx.r2.dev"
+  subcategory: "Tech News"
+  language: "en-us"
+  copyright: "© 2026 Your Name"
+  image_url: "https://pub-xxxxx.r2.dev/cover.jpg"
+  site_url: "https://pub-xxxxx.r2.dev"
 
 storage:
+  max_episodes: 21
   email_ttl_days: 7
-  max_episodes: 100
+  pending_script_ttl_days: 21
+  save_scripts: true             # Save scripts as text files in R2 (scripts/ folder)
 
-workflow:
-  auto_approve: false  # Set to true to skip manual review
+performance:
+  claude_timeout_seconds: 120
+  tts_timeout_seconds: 300
+  max_retries: 3
+  retry_backoff_seconds: 5
 ```
 
 See [docs/usage/configuration.md](docs/usage/configuration.md) for all options.
@@ -215,7 +304,7 @@ briefcast/
 │       ├── config-loader.ts  # YAML config + validation
 │       ├── content-extractor.ts  # Email parsing
 │       ├── script-generator.ts   # Claude API integration
-│       ├── tts-generator.ts      # Fish Audio integration
+│       ├── tts-generator.ts      # OpenAI TTS integration
 │       ├── storage.ts            # R2/KV operations
 │       ├── rss-generator.ts      # Podcast feed generation
 │       └── auth.ts               # API authentication
@@ -270,16 +359,26 @@ wrangler tail
 
 ## Cost Breakdown
 
-Estimated monthly costs:
+Estimated monthly costs (daily podcast):
 
 - **Cloudflare Workers Paid**: $5.00
 - **R2 Storage** (10 GB): ~$0.15
 - **KV Storage**: Free (within limits)
 - **Email Routing**: Free
-- **Anthropic API**: ~$2-5/month (depends on usage)
-- **Fish Audio TTS**: ~$1-3/month (depends on usage)
+- **Anthropic Claude API**: ~$2-5/month (script generation)
+- **OpenAI TTS API** (gpt-4o-mini-tts): ~$3.60/month
+  - Based on ~3000 tokens/day at $12/1M tokens
+  - 67% cheaper than tts-1-hd ($10.80/month)
+  - Superior quality with 48 kHz audio and prompt steering
 
-**Total: ~$8-13/month**
+**Total: ~$11-14/month**
+
+### Cost Optimization Tips
+
+- Use `save_scripts: true` to regenerate audio without re-running Claude
+- Adjust `target_duration_minutes` to control script length
+- Use `/test-tts` endpoint to verify settings before production
+- Set `max_episodes` to limit R2 storage costs
 
 ## Architecture
 
@@ -312,8 +411,8 @@ Estimated monthly costs:
        │
        ▼
 ┌─────────────┐      ┌──────────┐
-│   Manual    │      │   Fish   │
-│   Review    │─────▶│  Audio   │
+│   Manual    │      │  OpenAI  │
+│   Review    │─────▶│   TTS    │
 │ (Optional)  │      │   API    │
 └──────┬──────┘      └────┬─────┘
        │                  │
@@ -345,9 +444,11 @@ Estimated monthly costs:
 - Review worker logs: `wrangler tail`
 
 **Audio generation fails**
-- Verify Fish Audio API key
-- Check account has credits
-- Review TTS API logs
+- Verify OpenAI API key is valid
+- Check account has credits and billing is set up
+- Review worker logs: `wrangler tail`
+- Test with `/test-tts` endpoint to isolate issues
+- Check `style_prompt` isn't too long (max ~1950 tokens)
 
 **RSS feed not updating**
 - Check R2 bucket permissions
@@ -374,7 +475,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 - Built with [Cloudflare Workers](https://workers.cloudflare.com/)
 - AI by [Anthropic Claude](https://www.anthropic.com/)
-- TTS by [Fish Audio](https://fish.audio/)
+- TTS by [OpenAI gpt-4o-mini-tts](https://platform.openai.com/)
 - Inspired by newsletter aggregation tools
 
 ## Support

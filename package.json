@@ -27,7 +27,8 @@
     "postal-mime": "^2.6.1",
     "podcast": "^2.0.1",
     "js-yaml": "^4.1.0",
-    "zod": "^3.22.0"
+    "zod": "^3.22.0",
+    "js-tiktoken": "^1.0.15"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250101.0",

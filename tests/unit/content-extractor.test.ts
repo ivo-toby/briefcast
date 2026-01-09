@@ -37,17 +37,25 @@ describe('extractContent', () => {
     schedule: { cron: '0 5 * * *' },
     filtering: {
       include_topics: ['AI', 'machine learning'],
+      exclude_topics: ['cryptocurrency'],
       exclude_keywords: ['spam', 'unsubscribe'],
     },
     script_generation: {
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 4000,
       temperature: 0.7,
+      min_words: 800,
+      max_words: 1500,
+      target_duration_minutes: 10,
       system_prompt: 'Generate podcast script',
+      user_prompt_template: 'Create episode from {newsletters}',
     },
     tts: {
-      voice_id: 'default',
+      model: 'gpt-4o-mini-tts',
+      voice: 'nova',
       bitrate: 128,
+      format: 'mp3',
+      speed: 1.0,
     },
     podcast: {
       title: 'Test Podcast',
@@ -55,15 +63,26 @@ describe('extractContent', () => {
       author: 'Test Author',
       email: 'test@example.com',
       category: 'Technology',
-      language: 'en-us',
-      base_url: 'https://example.com',
+      subcategory: 'Tech News',
+      language: 'en',
+      copyright: '© 2026 Test',
+      image_url: 'https://example.com/image.jpg',
+      site_url: 'https://example.com',
     },
     storage: {
       email_ttl_days: 7,
       max_episodes: 100,
+      pending_script_ttl_days: 21,
     },
-    workflow: {
-      auto_approve: false,
+    email: {
+      forward_to: 'test@example.com',
+      allowed_senders: ['*@example.com'],
+    },
+    performance: {
+      claude_timeout_seconds: 120,
+      tts_timeout_seconds: 300,
+      max_retries: 3,
+      retry_backoff_seconds: 5,
     },
   };
 
