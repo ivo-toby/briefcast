@@ -1,0 +1,38 @@
+# Dependencies
+node_modules
+npm-debug.log
+
+# Source (compiled dist is used)
+src
+
+# TypeScript
+*.ts
+!*.d.ts
+tsconfig.json
+
+# Tests
+**/__tests__
+**/*.test.ts
+**/*.spec.ts
+vitest.config.ts
+
+# Development
+.env
+.env.local
+*.log
+tmp/
+
+# Editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
