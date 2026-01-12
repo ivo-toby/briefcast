@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  processor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: briefcast-processor
+    environment:
+      - NODE_ENV=production
+      - TEMP_DIR=/tmp/briefcast
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      # API Keys (from .env file)
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # R2 Configuration
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_BUCKET_NAME=${R2_BUCKET_NAME:-briefcast-podcast}
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL}
+    volumes:
+      # Mount temp directory for debugging (optional)
+      - ./tmp:/tmp/briefcast
+    tmpfs:
+      # Use tmpfs for faster temp file operations
+      - /tmp/briefcast:size=500M
+    restart: "no"
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+
+  # Development service with live reload
+  processor-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: briefcast-processor-dev
+    command: npm run dev
+    environment:
+      - NODE_ENV=development
+      - TEMP_DIR=/tmp/briefcast
+      - LOG_LEVEL=debug
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_BUCKET_NAME=${R2_BUCKET_NAME:-briefcast-podcast}
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL}
+    volumes:
+      - .:/app
+      - /app/node_modules
+    profiles:
+      - dev
