@@ -20,3 +20,12 @@ export {
   type NormalizationResult,
   type PipelineResult,
 } from './normalizer.js';
+
+// Audio assembler
+export {
+  AudioAssembler,
+  createAudioAssembler,
+  type AssemblySectionInput,
+  type AssembledEpisode,
+  type AssemblerOptions,
+} from './assembler.js';
