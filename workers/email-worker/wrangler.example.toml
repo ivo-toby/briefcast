@@ -1,0 +1,17 @@
+# Briefcast Email Worker Configuration
+name = "briefcast-email-worker"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# R2 bucket binding
+[[r2_buckets]]
+binding = "PODCAST_BUCKET"
+bucket_name = "briefcast-podcast"
+
+# Environment variables (set in dashboard for production)
+[vars]
+ENVIRONMENT = "development"
+# ALLOWED_SENDERS = "newsletter@example.com,@substack.com"
+
+# Email routing - configure in Cloudflare dashboard
+# Routes emails sent to podcast@yourdomain.com to this worker
