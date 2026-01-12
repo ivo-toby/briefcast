@@ -4,7 +4,7 @@
  */
 
 // =============================================================================
-// Structured Script Types (New)
+// Section Types (shared between types and schemas)
 // =============================================================================
 
 /**
@@ -12,26 +12,10 @@
  */
 export type SectionType = 'intro' | 'topic' | 'synthesis';
 
-/**
- * Individual section in a structured script
- */
-export interface ScriptSection {
-  type: SectionType;
-  title?: string;
-  content: string;
-  sources?: string[];
-}
-
-/**
- * Structured podcast script output format
- * Replaces the old flat content format
- */
-export interface StructuredScript {
-  date: string; // YYYY-MM-DD format
-  episodeTitle: string;
-  estimatedDurationMinutes: number;
-  sections: ScriptSection[];
-}
+// =============================================================================
+// Structured Script Types - Zod schemas in schemas/script.ts
+// Import StructuredScript, ScriptSection from schemas for full validation
+// =============================================================================
 
 // =============================================================================
 // Email Types
