@@ -1,21 +1,25 @@
 /**
  * Email reader module
- * Lists and fetches pending emails from R2 storage
+ * Lists and fetches pending emails from Cloudflare KV storage
  */
 
-import type { R2StorageClient, R2ObjectInfo } from '../storage/r2-client.js';
-import { STORAGE_KEYS, type Email } from '@briefcast/shared';
+import type { KVStorageClient, KVKeyInfo } from '../storage/kv-client.js';
+import type { Email } from '@briefcast/shared';
 import { EmailProcessingError, wrapError } from '@briefcast/shared';
 import { parseEmail } from './parser.js';
 
 /**
- * Pending email reference from R2
+ * Email key prefix in KV
+ */
+const EMAIL_KEY_PREFIX = 'email:';
+
+/**
+ * Pending email reference from KV
  */
 export interface PendingEmailRef {
   key: string;
   messageId: string;
-  lastModified: Date;
-  size: number;
+  expiration?: number;
 }
 
 /**
@@ -28,33 +32,30 @@ export interface FetchedEmail {
 }
 
 /**
- * Extract message ID from R2 key
- * Keys follow format: pending-emails/{messageId}.eml
+ * Extract message ID from KV key
+ * Keys follow format: email:<messageId>
  */
 function extractMessageId(key: string): string {
-  const filename = key.split('/').pop() ?? '';
-  return filename.replace(/\.eml$/, '');
+  return key.replace(/^email:/, '');
 }
 
 /**
- * List all pending emails in R2
+ * List all pending emails in KV
  * Returns references that can be used to fetch full email content
  */
 export async function listPendingEmails(
-  r2Client: R2StorageClient
+  kvClient: KVStorageClient
 ): Promise<PendingEmailRef[]> {
   try {
-    const objects = await r2Client.listObjects(STORAGE_KEYS.PENDING_EMAILS_PREFIX);
+    const keys = await kvClient.listKeys(EMAIL_KEY_PREFIX);
 
-    return objects
-      .filter((obj: R2ObjectInfo) => obj.key.endsWith('.eml'))
-      .map((obj: R2ObjectInfo) => ({
-        key: obj.key,
-        messageId: extractMessageId(obj.key),
-        lastModified: obj.lastModified,
-        size: obj.size,
-      }))
-      .sort((a, b) => a.lastModified.getTime() - b.lastModified.getTime());
+    return keys
+      .filter((key: KVKeyInfo) => key.name.startsWith(EMAIL_KEY_PREFIX))
+      .map((key: KVKeyInfo) => ({
+        key: key.name,
+        messageId: extractMessageId(key.name),
+        expiration: key.expiration,
+      }));
   } catch (error) {
     throw wrapError(EmailProcessingError, error, {
       operation: 'listPendingEmails',
@@ -66,9 +67,9 @@ export async function listPendingEmails(
  * Check if there are any pending emails
  */
 export async function hasPendingEmails(
-  r2Client: R2StorageClient
+  kvClient: KVStorageClient
 ): Promise<boolean> {
-  const emails = await listPendingEmails(r2Client);
+  const emails = await listPendingEmails(kvClient);
   return emails.length > 0;
 }
 
@@ -76,9 +77,9 @@ export async function hasPendingEmails(
  * Count pending emails
  */
 export async function countPendingEmails(
-  r2Client: R2StorageClient
+  kvClient: KVStorageClient
 ): Promise<number> {
-  const emails = await listPendingEmails(r2Client);
+  const emails = await listPendingEmails(kvClient);
   return emails.length;
 }
 
@@ -86,11 +87,11 @@ export async function countPendingEmails(
  * Fetch a single email by its reference
  */
 export async function fetchEmail(
-  r2Client: R2StorageClient,
+  kvClient: KVStorageClient,
   ref: PendingEmailRef
 ): Promise<FetchedEmail> {
   try {
-    const rawContent = await r2Client.getObjectText(ref.key);
+    const rawContent = await kvClient.getValue(ref.key);
     const email = await parseEmail(rawContent, ref.messageId);
 
     return {
@@ -120,19 +121,18 @@ export interface BatchFetchResult {
 
 /**
  * Fetch all pending emails
- * Processes in order of arrival (oldest first)
  * Returns both successful and failed results
  */
 export async function fetchAllPendingEmails(
-  r2Client: R2StorageClient
+  kvClient: KVStorageClient
 ): Promise<BatchFetchResult> {
-  const refs = await listPendingEmails(r2Client);
+  const refs = await listPendingEmails(kvClient);
   const successful: FetchedEmail[] = [];
   const failed: Array<{ ref: PendingEmailRef; error: Error }> = [];
 
   for (const ref of refs) {
     try {
-      const fetched = await fetchEmail(r2Client, ref);
+      const fetched = await fetchEmail(kvClient, ref);
       successful.push(fetched);
     } catch (error) {
       // Collect errors for later handling
@@ -147,44 +147,19 @@ export async function fetchAllPendingEmails(
 }
 
 /**
- * Delete a processed email from pending
+ * Delete a processed email from KV
  */
 export async function deletePendingEmail(
-  r2Client: R2StorageClient,
+  kvClient: KVStorageClient,
   ref: PendingEmailRef
 ): Promise<void> {
   try {
-    await r2Client.deleteObject(ref.key);
+    await kvClient.deleteKey(ref.key);
   } catch (error) {
     throw wrapError(EmailProcessingError, error, {
       operation: 'deletePendingEmail',
       key: ref.key,
       messageId: ref.messageId,
-    });
-  }
-}
-
-/**
- * Move email to a different prefix (e.g., processed or failed)
- */
-export async function moveEmail(
-  r2Client: R2StorageClient,
-  ref: PendingEmailRef,
-  destPrefix: string
-): Promise<string> {
-  try {
-    const filename = `${ref.messageId}.eml`;
-    const destKey = `${destPrefix}${filename}`;
-
-    await r2Client.copyObject(ref.key, destKey);
-    await r2Client.deleteObject(ref.key);
-
-    return destKey;
-  } catch (error) {
-    throw wrapError(EmailProcessingError, error, {
-      operation: 'moveEmail',
-      sourceKey: ref.key,
-      destPrefix,
     });
   }
 }

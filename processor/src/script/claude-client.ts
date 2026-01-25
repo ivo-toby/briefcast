@@ -3,7 +3,7 @@
  * Handles structured output generation for podcast scripts
  */
 
-import { ClaudeAPIError, withRetry, isRetryableError } from '@briefcast/shared';
+import { ClaudeAPIError, retry, isRetryableError } from '@briefcast/shared';
 import type { ProcessorEnv } from '@briefcast/shared';
 
 // Node.js fetch is available in Node 18+
@@ -89,8 +89,8 @@ export class ClaudeClient {
     systemPrompt: string,
     messages: ClaudeMessage[]
   ): Promise<string> {
-    const response = await withRetry(
-      async () => this.makeRequest(systemPrompt, messages),
+    const response = await retry(
+      () => this.makeRequest(systemPrompt, messages),
       {
         maxAttempts: 3,
         backoffMs: 1000,

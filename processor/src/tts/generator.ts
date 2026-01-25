@@ -8,7 +8,7 @@ import * as fs from 'node:fs/promises';
 import type { ProcessorEnv, Config } from '@briefcast/shared';
 import type { StructuredScript, ScriptSection } from '@briefcast/shared';
 import { TTSAPIError } from '@briefcast/shared';
-import { OpenAITTSClient, createTTSClient, type TTSVoice } from './openai-client.js';
+import { OpenAITTSClient, createTTSClient } from './openai-client.js';
 
 /**
  * Generated section audio
@@ -36,7 +36,7 @@ export interface ScriptAudioResult {
  */
 export interface TTSGeneratorOptions {
   outputDir: string;
-  voice?: TTSVoice;
+  voice?: string;
   speed?: number;
 }
 
@@ -48,7 +48,7 @@ export class TTSGenerator {
   private readonly config: Config;
 
   constructor(env: ProcessorEnv, config: Config) {
-    this.client = createTTSClient(env);
+    this.client = createTTSClient(env, config);
     this.config = config;
   }
 
@@ -166,9 +166,9 @@ export class TTSGenerator {
   /**
    * Get appropriate voice for section type
    */
-  private getVoiceForSection(section: ScriptSection): TTSVoice {
+  private getVoiceForSection(section: ScriptSection): string {
     // Use consistent voice from config
-    return this.config.tts.voice as TTSVoice;
+    return this.config.tts.voice;
   }
 
   /**

@@ -1,33 +1,40 @@
 /**
  * OpenAI TTS client
  * Generates speech from text using OpenAI's TTS API
+ * Supports both tts-1/tts-1-hd and gpt-4o-mini-tts models
  */
 
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { TTSAPIError, withRetry, isRetryableError } from '@briefcast/shared';
-import type { ProcessorEnv } from '@briefcast/shared';
+import { TTSAPIError, retry, isRetryableError } from '@briefcast/shared';
+import type { ProcessorEnv, Config } from '@briefcast/shared';
 
 // Node.js fetch is available in Node 18+
 declare const fetch: typeof globalThis.fetch;
 
 /**
- * TTS voice options
+ * TTS voice options for tts-1 / tts-1-hd models
  */
-export type TTSVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
+export type TTSVoiceLegacy = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
+
+/**
+ * TTS voice options for gpt-4o-mini-tts model
+ * Includes legacy voices plus new ones
+ */
+export type TTSVoice = 'alloy' | 'ash' | 'ballad' | 'coral' | 'echo' | 'fable' | 'nova' | 'onyx' | 'sage' | 'shimmer' | 'verse';
 
 /**
  * TTS model options
  */
-export type TTSModel = 'tts-1' | 'tts-1-hd';
+export type TTSModel = 'tts-1' | 'tts-1-hd' | 'gpt-4o-mini-tts';
 
 /**
  * TTS client configuration
  */
 export interface TTSClientConfig {
   apiKey: string;
-  model?: TTSModel;
-  voice?: TTSVoice;
+  model?: string;
+  voice?: string;
   speed?: number;
 }
 
@@ -35,7 +42,7 @@ export interface TTSClientConfig {
  * TTS generation options
  */
 export interface TTSOptions {
-  voice?: TTSVoice;
+  voice?: string;
   speed?: number;
 }
 
@@ -56,8 +63,8 @@ const TTS_API_URL = 'https://api.openai.com/v1/audio/speech';
 /**
  * Default configuration
  */
-const DEFAULT_MODEL: TTSModel = 'tts-1';
-const DEFAULT_VOICE: TTSVoice = 'nova';
+const DEFAULT_MODEL = 'gpt-4o-mini-tts';
+const DEFAULT_VOICE = 'nova';
 const DEFAULT_SPEED = 1.0;
 
 /**
@@ -65,8 +72,8 @@ const DEFAULT_SPEED = 1.0;
  */
 export class OpenAITTSClient {
   private readonly apiKey: string;
-  private readonly model: TTSModel;
-  private readonly defaultVoice: TTSVoice;
+  private readonly model: string;
+  private readonly defaultVoice: string;
   private readonly defaultSpeed: number;
 
   constructor(config: TTSClientConfig) {
@@ -91,8 +98,8 @@ export class OpenAITTSClient {
     const wordCount = text.split(/\s+/).length;
     const durationEstimate = (wordCount / 150 / speed) * 60;
 
-    const audioBuffer = await withRetry(
-      async () => this.makeRequest(text, voice, speed),
+    const audioBuffer = await retry(
+      () => this.makeRequest(text, voice, speed),
       {
         maxAttempts: 3,
         backoffMs: 1000,
@@ -120,7 +127,7 @@ export class OpenAITTSClient {
    */
   private async makeRequest(
     text: string,
-    voice: TTSVoice,
+    voice: string,
     speed: number
   ): Promise<Buffer> {
     try {
@@ -216,10 +223,13 @@ export class OpenAITTSClient {
 }
 
 /**
- * Create TTS client from environment
+ * Create TTS client from environment and config
  */
-export function createTTSClient(env: ProcessorEnv): OpenAITTSClient {
+export function createTTSClient(env: ProcessorEnv, config?: Config): OpenAITTSClient {
   return new OpenAITTSClient({
     apiKey: env.OPENAI_API_KEY,
+    model: config?.tts.model,
+    voice: config?.tts.voice,
+    speed: config?.tts.speed,
   });
 }

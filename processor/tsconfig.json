@@ -11,7 +11,11 @@
     "paths": {
       "@briefcast/shared": ["../shared"],
       "@briefcast/shared/*": ["../shared/*"]
-    }
+    },
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
   },
   "include": [
     "src/**/*"

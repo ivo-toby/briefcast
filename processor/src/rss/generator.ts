@@ -51,6 +51,9 @@ export class RSSGenerator {
     // Build RSS feed
     const items = limitedEpisodes.map((ep, i) => this.buildItem(ep, i + 1));
 
+    // Derive feedUrl from siteUrl if not explicitly set
+    const feedUrl = `${podcast.siteUrl}/feed.xml`;
+
     const rss = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"
      xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
@@ -58,30 +61,30 @@ export class RSSGenerator {
      xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>${escapeXml(podcast.title)}</title>
-    <link>${escapeXml(podcast.websiteUrl)}</link>
+    <link>${escapeXml(podcast.siteUrl)}</link>
     <description>${escapeXml(podcast.description)}</description>
     <language>${podcast.language}</language>
     <copyright>${escapeXml(podcast.copyright)}</copyright>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
-    <atom:link href="${escapeXml(podcast.feedUrl)}" rel="self" type="application/rss+xml"/>
+    <atom:link href="${escapeXml(feedUrl)}" rel="self" type="application/rss+xml"/>
 
     <itunes:author>${escapeXml(podcast.author)}</itunes:author>
     <itunes:summary>${escapeXml(podcast.description)}</itunes:summary>
     <itunes:type>episodic</itunes:type>
-    <itunes:explicit>${podcast.explicit ? 'true' : 'false'}</itunes:explicit>
-    <itunes:image href="${escapeXml(podcast.coverImageUrl)}"/>
+    <itunes:explicit>false</itunes:explicit>
+    <itunes:image href="${escapeXml(podcast.imageUrl)}"/>
     <itunes:category text="${escapeXml(podcast.category)}">
       ${podcast.subcategory ? `<itunes:category text="${escapeXml(podcast.subcategory)}"/>` : ''}
     </itunes:category>
     <itunes:owner>
       <itunes:name>${escapeXml(podcast.author)}</itunes:name>
-      <itunes:email>${escapeXml(podcast.ownerEmail)}</itunes:email>
+      <itunes:email>${escapeXml(podcast.email)}</itunes:email>
     </itunes:owner>
 
     <image>
-      <url>${escapeXml(podcast.coverImageUrl)}</url>
+      <url>${escapeXml(podcast.imageUrl)}</url>
       <title>${escapeXml(podcast.title)}</title>
-      <link>${escapeXml(podcast.websiteUrl)}</link>
+      <link>${escapeXml(podcast.siteUrl)}</link>
     </image>
 
 ${items.join('\n')}
@@ -97,7 +100,8 @@ ${items.join('\n')}
   private buildItem(episode: EpisodeMetadata, episodeNumber: number): string {
     const pubDate = new Date(episode.date + 'T08:00:00Z').toUTCString();
     const duration = formatDuration(episode.durationSeconds);
-    const guid = `${this.config.podcast.feedUrl}#${episode.id}`;
+    const feedUrl = `${this.config.podcast.siteUrl}/feed.xml`;
+    const guid = `${feedUrl}#${episode.id}`;
 
     // Build description with sources
     const description = episode.sources.length > 0
@@ -111,12 +115,12 @@ ${items.join('\n')}
       <pubDate>${pubDate}</pubDate>
       <enclosure url="${escapeXml(episode.audioUrl)}" length="${episode.fileSizeBytes}" type="audio/mpeg"/>
       <guid isPermaLink="false">${escapeXml(guid)}</guid>
-      <link>${escapeXml(this.config.podcast.websiteUrl)}</link>
+      <link>${escapeXml(this.config.podcast.siteUrl)}</link>
       <itunes:title>${escapeXml(episode.title)}</itunes:title>
       <itunes:summary>${escapeXml(episode.description)}</itunes:summary>
       <itunes:duration>${duration}</itunes:duration>
       <itunes:episode>${episodeNumber}</itunes:episode>
-      <itunes:explicit>${this.config.podcast.explicit ? 'true' : 'false'}</itunes:explicit>
+      <itunes:explicit>false</itunes:explicit>
     </item>`;
   }
 

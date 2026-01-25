@@ -67,7 +67,7 @@ export const ScriptGenerationConfigSchema = z.object({
  */
 export const TTSConfigSchema = z.object({
   model: z.string().default('gpt-4o-mini-tts'),
-  voice: z.enum(['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']).default('nova'),
+  voice: z.enum(['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer', 'verse']).default('nova'),
   bitrate: z.number().int().min(32).max(320).default(128),
   format: z.enum(['mp3', 'opus', 'aac', 'flac']).default('mp3'),
   speed: z.number().min(0.25).max(4.0).default(1.0),

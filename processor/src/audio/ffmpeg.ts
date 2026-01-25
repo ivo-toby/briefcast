@@ -113,20 +113,26 @@ export class FFmpegWrapper {
   async measureLoudness(inputPath: string): Promise<LoudnessMeasurement> {
     try {
       // First pass: analyze loudness
-      const { stderr } = await exec(
+      // FFmpeg outputs loudnorm stats to stderr, use 2>&1 to capture in stdout
+      const { stdout } = await exec(
         `ffmpeg -i "${inputPath}" -af loudnorm=I=-16:TP=-1:LRA=11:print_format=json -f null - 2>&1`
       );
 
-      // Extract JSON from output
-      const jsonMatch = stderr.match(/\{[\s\S]*"input_i"[\s\S]*\}/);
+      // Extract JSON from output - find the loudnorm JSON block
+      // The JSON starts with { and contains "input_i", ends with }
+      // Use non-greedy matching to get just the first complete JSON object
+      const jsonMatch = stdout.match(/\{[^{}]*"input_i"[^{}]*\}/);
       if (!jsonMatch) {
         throw new AudioProcessingError('Failed to parse loudness measurement', {
           inputPath,
-          output: stderr.substring(0, 500),
+          output: stdout.substring(0, 500),
         });
       }
 
-      const measurement = JSON.parse(jsonMatch[0]);
+      // Clean up the JSON - remove any trailing content
+      let jsonStr = jsonMatch[0].trim();
+
+      const measurement = JSON.parse(jsonStr);
 
       return {
         inputI: parseFloat(measurement.input_i),

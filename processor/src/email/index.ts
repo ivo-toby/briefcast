@@ -11,7 +11,6 @@ export {
   fetchEmail,
   fetchAllPendingEmails,
   deletePendingEmail,
-  moveEmail,
   type PendingEmailRef,
   type FetchedEmail,
   type BatchFetchResult,

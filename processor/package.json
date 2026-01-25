@@ -18,7 +18,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@briefcast/shared": "workspace:*",
+    "@briefcast/shared": "*",
     "@aws-sdk/client-s3": "^3.500.0",
     "postal-mime": "^2.6.1",
     "podcast": "^2.0.1",

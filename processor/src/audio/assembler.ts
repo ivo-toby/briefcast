@@ -6,7 +6,7 @@
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import type { Config, EpisodeSectionInfo, SectionType } from '@briefcast/shared';
-import { AudioProcessingError, STORAGE_KEYS } from '@briefcast/shared';
+import { STORAGE_KEYS } from '@briefcast/shared';
 import { FFmpegWrapper, createFFmpegWrapper } from './ffmpeg.js';
 import { AudioNormalizer, createAudioNormalizer } from './normalizer.js';
 import type { R2StorageClient } from '../storage/r2-client.js';
@@ -92,7 +92,7 @@ export class AudioAssembler {
     let currentTime = 0;
 
     // 1. Add intro music if enabled
-    if (opts.includeIntroMusic && this.config.audio.music.enabled) {
+    if (opts.includeIntroMusic && this.config.audio.music.introPath) {
       const introPath = await this.getOrDownloadMusic('intro', timestamp);
       if (introPath) {
         // Add fade in to intro music
@@ -110,7 +110,7 @@ export class AudioAssembler {
       const section = sections[i];
 
       // Add transition between sections (except before first)
-      if (i > 0 && opts.includeTransitions && this.config.audio.music.enabled) {
+      if (i > 0 && opts.includeTransitions && this.config.audio.music.introPath) {
         const transitionPath = await this.getOrDownloadMusic('transition', timestamp, i);
         if (transitionPath) {
           audioParts.push(transitionPath);
@@ -137,7 +137,7 @@ export class AudioAssembler {
     }
 
     // 3. Add outro music if enabled
-    if (opts.includeOutroMusic && this.config.audio.music.enabled) {
+    if (opts.includeOutroMusic && this.config.audio.music.introPath) {
       const outroPath = await this.getOrDownloadMusic('outro', timestamp);
       if (outroPath) {
         // Add fade out to outro music

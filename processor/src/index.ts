@@ -4,7 +4,7 @@
  *
  * Pipeline:
  * 1. Load configuration from R2
- * 2. Fetch pending emails from R2
+ * 2. Fetch pending emails from KV
  * 3. Extract content from newsletters
  * 4. Generate structured script via Claude
  * 5. Generate TTS audio for each section
@@ -15,10 +15,13 @@
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import type { ProcessorEnv, EpisodeMetadata } from '@briefcast/shared';
-import { clearConfigCache } from '@briefcast/shared';
+
+// Import clearConfigCache from local config module
+import { clearConfigCache } from './config/loader.js';
 
 // Storage
-import { createR2Client, createR2Config } from './storage/r2-client.js';
+import { createR2Client } from './storage/r2-client.js';
+import { createKVClient } from './storage/kv-client.js';
 
 // Config
 import { loadConfigWithTransform } from './config/loader.js';
@@ -45,8 +48,6 @@ import { createRSSGenerator } from './rss/index.js';
 import {
   logger,
   configureLogger,
-  logStart,
-  logComplete,
   logError,
   timedOperation,
   getTodayDate,
@@ -86,8 +87,15 @@ export async function processEmails(env: ProcessorEnv): Promise<ProcessingResult
   clearConfigCache();
 
   try {
-    // Initialize R2 client
+    // Initialize R2 client (for config, episodes, RSS)
     const r2Client = createR2Client(env);
+
+    // Initialize KV client (for emails)
+    const kvClient = createKVClient({
+      CF_ACCOUNT_ID: env.R2_ACCOUNT_ID, // Same Cloudflare account
+      CF_KV_NAMESPACE_ID: env.CF_KV_NAMESPACE_ID!,
+      CF_API_TOKEN: env.CF_API_TOKEN!,
+    });
 
     // Step 1: Load configuration
     log.info('Loading configuration');
@@ -100,11 +108,11 @@ export async function processEmails(env: ProcessorEnv): Promise<ProcessingResult
     const tempDir = env.TEMP_DIR ?? '/tmp/briefcast';
     await fs.mkdir(tempDir, { recursive: true });
 
-    // Step 2: Fetch pending emails
-    log.info('Fetching pending emails');
+    // Step 2: Fetch pending emails from KV
+    log.info('Fetching pending emails from KV');
     const { successful: emails, failed: fetchErrors } = await timedOperation(
       'fetch-emails',
-      () => fetchAllPendingEmails(r2Client)
+      () => fetchAllPendingEmails(kvClient)
     );
 
     if (fetchErrors.length > 0) {
@@ -197,16 +205,26 @@ export async function processEmails(env: ProcessorEnv): Promise<ProcessingResult
       generatedAt: new Date().toISOString(),
     };
 
-    log.info('Updating RSS feed');
-    const rssGenerator = createRSSGenerator(config, r2Client);
-    await timedOperation('update-rss', () =>
-      rssGenerator.addEpisodeToFeed(episodeMetadata)
-    );
+    // Step 8: Update RSS feed (skip in dry-run mode to avoid affecting production)
+    const dryRunMode = process.env.DRY_RUN === 'true';
+    if (dryRunMode) {
+      log.info('DRY_RUN mode - skipping RSS feed update');
+    } else {
+      log.info('Updating RSS feed');
+      const rssGenerator = createRSSGenerator(config, r2Client);
+      await timedOperation('update-rss', () =>
+        rssGenerator.addEpisodeToFeed(episodeMetadata)
+      );
+    }
 
-    // Step 9: Cleanup - delete processed emails
-    log.info('Cleaning up processed emails');
-    for (const email of emails) {
-      await deletePendingEmail(r2Client, email.ref);
+    // Step 9: Cleanup - delete processed emails from KV (skip in dry-run mode)
+    if (dryRunMode) {
+      log.info('DRY_RUN mode - skipping email cleanup and keeping emails in queue');
+    } else {
+      log.info('Cleaning up processed emails from KV');
+      for (const email of emails) {
+        await deletePendingEmail(kvClient, email.ref);
+      }
     }
 
     // Cleanup temp files
@@ -262,6 +280,8 @@ async function main(): Promise<void> {
     R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY!,
     R2_BUCKET_NAME: process.env.R2_BUCKET_NAME!,
     R2_PUBLIC_URL: process.env.R2_PUBLIC_URL!,
+    CF_KV_NAMESPACE_ID: process.env.CF_KV_NAMESPACE_ID,
+    CF_API_TOKEN: process.env.CF_API_TOKEN,
     LOG_LEVEL: (process.env.LOG_LEVEL as 'debug' | 'info' | 'warn' | 'error') ?? 'info',
     TEMP_DIR: process.env.TEMP_DIR,
     NODE_ENV: (process.env.NODE_ENV as 'development' | 'production') ?? 'production',
@@ -276,6 +296,8 @@ async function main(): Promise<void> {
     'R2_SECRET_ACCESS_KEY',
     'R2_BUCKET_NAME',
     'R2_PUBLIC_URL',
+    'CF_KV_NAMESPACE_ID',
+    'CF_API_TOKEN',
   ];
 
   for (const key of required) {
