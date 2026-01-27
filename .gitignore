@@ -56,3 +56,10 @@ node_modules
 .envrc
 config.yaml
 wrangler.toml
+
+# Build output
+dist/
+**/dist/
+
+# Processor temp files (for local debugging)
+processor/tmp/
