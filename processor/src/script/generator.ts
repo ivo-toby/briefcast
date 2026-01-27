@@ -8,9 +8,9 @@ import {
   validateScript,
   type StructuredScript,
   ScriptValidationError,
+  SCRIPT_JSON_SCHEMA_DESCRIPTION,
 } from '@briefcast/shared';
 import { createClaudeClient, type ClaudeClient } from './claude-client.js';
-import { SCRIPT_SYSTEM_PROMPT, selectPromptStrategy } from './prompts.js';
 
 /**
  * Script generation options
@@ -56,12 +56,15 @@ export class ScriptGenerator {
       throw new ScriptValidationError('No content provided for script generation');
     }
 
-    // Select appropriate prompt based on content
-    const userPrompt = selectPromptStrategy(contents, date);
+    // Build system prompt from config + JSON schema requirements
+    const systemPrompt = this.buildSystemPrompt();
+
+    // Build user prompt from config template
+    const userPrompt = this.buildUserPrompt(contents, date);
 
     // Generate script via Claude
     const script = await this.claudeClient.generateJson<StructuredScript>(
-      SCRIPT_SYSTEM_PROMPT,
+      systemPrompt,
       userPrompt,
       (text) => {
         const parsed = JSON.parse(text);
@@ -81,6 +84,46 @@ export class ScriptGenerator {
       },
       generatedAt: new Date(),
     };
+  }
+
+  /**
+   * Build system prompt from config + JSON schema
+   */
+  private buildSystemPrompt(): string {
+    const configPrompt = this.config.scriptGeneration.systemPrompt;
+
+    // Append JSON output format requirements
+    return `${configPrompt}
+
+## Output Format Requirements
+${SCRIPT_JSON_SCHEMA_DESCRIPTION}`;
+  }
+
+  /**
+   * Build user prompt from config template with variable substitution
+   */
+  private buildUserPrompt(contents: NewsletterContent[], date: string): string {
+    const template = this.config.scriptGeneration.userPromptTemplate;
+
+    // Calculate content-based values
+    const totalWords = contents.reduce((sum, c) => sum + c.wordCount, 0);
+    const estimatedDuration = Math.max(5, Math.min(30, Math.floor(totalWords / 150)));
+
+    // Format newsletters content
+    const newslettersContent = contents
+      .map((c, i) => `### Newsletter ${i + 1}: "${c.subject}"
+From: ${c.from}
+
+${c.cleanedText.substring(0, 5000)}`)
+      .join('\n\n---\n\n');
+
+    // Substitute template variables
+    return template
+      .replace(/\{date\}/g, date)
+      .replace(/\{newsletters\}/g, newslettersContent)
+      .replace(/\{target_duration_minutes\}/g, String(estimatedDuration))
+      .replace(/\{min_words\}/g, '800')
+      .replace(/\{max_words\}/g, '3000');
   }
 
   /**
