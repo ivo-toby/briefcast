@@ -219,9 +219,10 @@ export class FFmpegWrapper {
       const fileList = inputPaths.map((p) => `file '${p}'`).join('\n');
       await fs.writeFile(listPath, fileList);
 
-      // Concatenate
+      // Concatenate - re-encode to avoid MP3 frame boundary issues
+      // Using -c copy can lose audio at segment boundaries due to MP3 frame alignment
       await exec(
-        `ffmpeg -y -f concat -safe 0 -i "${listPath}" -c copy "${outputPath}"`
+        `ffmpeg -y -f concat -safe 0 -i "${listPath}" -acodec libmp3lame -ab 192k "${outputPath}"`
       );
 
       // Cleanup

@@ -137,6 +137,7 @@ export class AudioAssembler {
     }
 
     // 3. Add outro music if enabled
+    let hasOutroMusic = false;
     if (opts.includeOutroMusic && this.config.audio.music.introPath) {
       const outroPath = await this.getOrDownloadMusic('outro', timestamp);
       if (outroPath) {
@@ -144,6 +145,7 @@ export class AudioAssembler {
         const fadedOutroPath = path.join(opts.tempDir, `outro-faded-${timestamp}.mp3`);
         await this.ffmpeg.addFade(outroPath, fadedOutroPath, 0, opts.fadeOutDuration);
         audioParts.push(fadedOutroPath);
+        hasOutroMusic = true;
       }
     }
 
@@ -151,12 +153,18 @@ export class AudioAssembler {
     const rawPath = path.join(opts.tempDir, `episode-raw-${timestamp}.mp3`);
     await this.ffmpeg.concatenate(audioParts, rawPath);
 
-    // 5. Final normalization and fade out
+    // 5. Final normalization
     const normalizedPath = path.join(opts.tempDir, `episode-normalized-${timestamp}.mp3`);
     await this.normalizer.normalizeFile(rawPath, normalizedPath, 'episode');
 
-    // 6. Add final fade out
-    await this.ffmpeg.addFade(normalizedPath, outputPath, 0, opts.fadeOutDuration);
+    // 6. Add final fade out only if no outro music (outro already has fade)
+    if (hasOutroMusic) {
+      // No additional fade needed - outro music already has fade out
+      await fs.copyFile(normalizedPath, outputPath);
+    } else {
+      // Add fade out to the final episode
+      await this.ffmpeg.addFade(normalizedPath, outputPath, 0, opts.fadeOutDuration);
+    }
 
     // Get final file info
     const finalInfo = await this.ffmpeg.getAudioInfo(outputPath);
